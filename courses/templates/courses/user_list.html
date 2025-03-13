@@ -1,0 +1,22 @@
+<div class="list-group">
+    {% for user in users %}
+    <div class="list-group-item">
+        <div class="form-check">
+            <input type="checkbox" name="users" value="{{ user.id }}"
+                   class="form-check-input"
+                   {% if user in enrolled_users %}disabled{% endif %}>
+            <label class="form-check-label {% if user in enrolled_users %}text-muted{% endif %}">
+                {{ user.username }}
+                {% if user.department %}
+                    ({{ user.department }})
+                {% endif %}
+                {% if user in enrolled_users %}
+                    <span class="badge bg-success">Already Enrolled</span>
+                {% endif %}
+            </label>
+        </div>
+    </div>
+    {% empty %}
+    <p class="text-muted">No users found matching your criteria.</p>
+    {% endfor %}
+</div>

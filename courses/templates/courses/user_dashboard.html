@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+<div class="container mt-4">
+    {% if messages %}
+    <div class="messages mb-4">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Enrolled Courses Section -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h4 class="mb-0">My Enrolled Courses</h4>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                {% for course in enrolled_courses %}
+                <div class="col-md-6 col-lg-4 mb-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">{{ course.title }}</h5>
+                            <p class="card-text">{{ course.description|truncatewords:20 }}</p>
+                            
+                            <!-- Progress Bar -->
+                            <div class="progress mb-3">
+                                <div class="progress-bar" role="progressbar" 
+                                     style="width: {% widthratio course.completed_lessons course.total_lessons 100 %}%"
+                                     aria-valuenow="{% widthratio course.completed_lessons course.total_lessons 100 %}"
+                                     aria-valuemin="0" aria-valuemax="100">
+                                    {{ course.completed_lessons }}/{{ course.total_lessons }} Lessons
+                                </div>
+                            </div>
+
+                            <div class="d-flex justify-content-between align-items-center">
+                                <a href="{% url 'program_detail' course.id %}" class="btn btn-primary">
+                                    Continue Learning
+                                </a>
+                                <form method="post" action="{% url 'unenroll_course' course.id %}" 
+                                      style="display: inline;">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-outline-danger btn-sm"
+                                            onclick="return confirm('Are you sure you want to unenroll?')">
+                                        Unenroll
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="col-12">
+                    <p class="text-muted">You haven't enrolled in any courses yet.</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- All Courses Section -->
+    <div class="card">
+        <div class="card-header">
+            <h4 class="mb-0">All Available Courses</h4>
+        </div>
+        <div class="card-body">
+            <!-- Search and Filter Form -->
+            <form method="get" class="mb-4">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        {{ search_form.search|as_crispy_field }}
+                    </div>
+                    <div class="col-md-3">
+                        {{ search_form.creator|as_crispy_field }}
+                    </div>
+                    <div class="col-md-2">
+                        {{ search_form.sort_by|as_crispy_field }}
+                    </div>
+                    <div class="col-md-3">
+                        {{ search_form.progress|as_crispy_field }}
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary mt-3">Apply Filters</button>
+                <a href="{% url 'user_dashboard' %}" class="btn btn-secondary mt-3">Clear Filters</a>
+            </form>
+
+            <!-- Course List -->
+            <div class="row">
+                {% for course in all_courses %}
+                <div class="col-md-6 col-lg-4 mb-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">{{ course.title }}</h5>
+                            <p class="card-text">{{ course.description|truncatewords:20 }}</p>
+                            <p class="text-muted">
+                                <small>Created by: {{ course.created_by.username }}</small><br>
+                                <small>Created: {{ course.created_at|date:"M d, Y" }}</small>
+                            </p>
+                            
+                            <div class="d-flex justify-content-between align-items-center">
+                                <a href="{% url 'program_detail' course.id %}" class="btn btn-info">
+                                    View Details
+                                </a>
+                                {% if course not in enrolled_courses.all %}
+                                <form method="post" action="{% url 'enroll_course' course.id %}">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-success">Enroll</button>
+                                </form>
+                                {% else %}
+                                <span class="badge bg-success">Enrolled</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="col-12">
+                    <p class="text-muted">No courses found matching your criteria.</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

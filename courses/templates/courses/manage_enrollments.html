@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">Manage Enrollments - {{ program.title }}</h4>
+                    <a href="{% url 'courses:program_detail' program.pk %}" class="btn btn-secondary">
+                        Back to Program
+                    </a>
+                </div>
+                <div class="card-body">
+                    <!-- Search and Filter Form -->
+                    <form id="search-form" class="mb-4">
+                        <div class="row">
+                            <div class="col-md-5">
+                                {{ form.search|as_crispy_field }}
+                            </div>
+                            <div class="col-md-4">
+                                {{ form.department|as_crispy_field }}
+                            </div>
+                        </div>
+                    </form>
+
+                    <!-- User Selection and Enrollment -->
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0">Available Users</h5>
+                                </div>
+                                <div class="card-body">
+                                    <form method="post">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="action" value="enroll">
+                                        <div id="user-list">
+                                            {% include 'courses/partials/user_list.html' %}
+                                        </div>
+                                        <button type="submit" class="btn btn-primary mt-3">
+                                            Enroll Selected Users
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0">Enrolled Users</h5>
+                                </div>
+                                <div class="card-body">
+                                    <form method="post">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="action" value="unenroll">
+                                        <div class="list-group">
+                                            {% for user in enrolled_users %}
+                                            <div class="list-group-item">
+                                                <div class="form-check d-flex justify-content-between align-items-center">
+                                                    <div>
+                                                        <input type="checkbox" name="users" value="{{ user.id }}"
+                                                               class="form-check-input">
+                                                        <label class="form-check-label">
+                                                            {{ user.username }} ({{ user.department }})
+                                                        </label>
+                                                    </div>
+                                                    {% with enrollment=user.enrollment_set.filter|first %}
+                                                        {% if enrollment %}
+                                                            <a href="{% url 'courses:enrollment_progress' enrollment.id %}"
+                                                                class="btn btn-primary btn-sm">
+                                                                View Progress
+                                                            </a>
+                                                        {% endif %}
+                                                    {% endwith %}
+                                                </div>
+                                            </div>
+                                            {% empty %}
+                                            <p class="text-muted">No users enrolled yet.</p>
+                                            {% endfor %}
+                                        </div>
+                                        {% if enrolled_users %}
+                                        <button type="submit" class="btn btn-danger mt-3">
+                                            Unenroll Selected Users
+                                        </button>
+                                        {% endif %}
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchForm = document.getElementById('search-form');
+    const searchInput = document.getElementById('id_search');
+    const departmentSelect = document.getElementById('id_department');
+    const userList = document.getElementById('user-list');
+
+    function updateUserList() {
+        const formData = new FormData(searchForm);
+        const params = new URLSearchParams(formData);
+
+        fetch(`${window.location.pathname}?${params}`, {
+            headers: {
+                'HX-Request': 'true'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            userList.innerHTML = data.html;
+        });
+    }
+
+    let debounceTimeout;
+    searchInput.addEventListener('input', function() {
+        clearTimeout(debounceTimeout);
+        debounceTimeout = setTimeout(updateUserList, 300);
+    });
+
+    departmentSelect.addEventListener('change', updateUserList);
+});
+</script>
+{% endblock %}

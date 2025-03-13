@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+<div class="container mt-4">
+    {% if messages %}
+    <div class="messages mb-4">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h4 class="mb-0">{{ program.title }}</h4>
+            {% if is_manager and is_owner %}
+            <div class="btn-group">
+                <a href="{% url 'courses:program_update' program.pk %}" class="btn btn-warning">
+                    <i class="fas fa-edit"></i> Edit Program
+                </a>
+                <a href="{% url 'courses:program_delete' program.pk %}" class="btn btn-danger">
+                    <i class="fas fa-trash"></i> Delete Program
+                </a>
+                <a href="{% url 'courses:topic_create' program.pk %}" class="btn btn-success">
+                    <i class="fas fa-plus"></i> Add Topic
+                </a>
+            </div>
+            {% endif %}
+        </div>
+        <div class="card-body">
+            <p class="text-muted">Created by: {{ program.created_by.username }}</p>
+            <p>{{ program.description }}</p>
+
+            {% if is_manager %}
+                {% for topic in topics %}
+                <div class="card mb-3">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">{{ topic.title }}</h5>
+                        {% if is_owner %}
+                        <div class="btn-group">
+                            <a href="{% url 'courses:topic_update' topic.pk %}" class="btn btn-sm btn-warning">
+                                <i class="fas fa-edit"></i> Edit
+                            </a>
+                            <a href="{% url 'courses:topic_delete' topic.pk %}" class="btn btn-sm btn-danger">
+                                <i class="fas fa-trash"></i> Delete
+                            </a>
+                            <a href="{% url 'courses:lesson_create' topic.pk %}" class="btn btn-sm btn-success">
+                                <i class="fas fa-plus"></i> Add Lesson
+                            </a>
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="card-body">
+                        <p>{{ topic.description }}</p>
+                        {% for lesson in topic.lessons.all %}
+                        <div class="card mb-2">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h6 class="mb-0">
+                                        <a href="{% url 'courses:lesson_detail' lesson.pk %}" class="text-decoration-none">
+                                            {{ lesson.title }}
+                                        </a>
+                                    </h6>
+                                    {% if is_owner %}
+                                    <div class="btn-group">
+                                        <a href="{% url 'courses:lesson_update' lesson.pk %}" class="btn btn-sm btn-warning">
+                                            <i class="fas fa-edit"></i> Edit
+                                        </a>
+                                        <a href="{% url 'courses:lesson_delete' lesson.pk %}" class="btn btn-sm btn-danger">
+                                            <i class="fas fa-trash"></i> Delete
+                                        </a>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% empty %}
+                <p class="text-muted">No topics added yet.</p>
+                {% endfor %}
+            {% else %}
+                {% for topic_info in processed_topics %}
+                <div class="card mb-3">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">{{ topic_info.topic.title }}</h5>
+                        {% if is_manager and is_owner %}
+                        <div class="btn-group">
+                            <a href="{% url 'courses:topic_update' topic_info.topic.pk %}" class="btn btn-sm btn-warning">
+                                <i class="fas fa-edit"></i> Edit
+                            </a>
+                            <a href="{% url 'courses:topic_delete' topic_info.topic.pk %}" class="btn btn-sm btn-danger">
+                                <i class="fas fa-trash"></i> Delete
+                            </a>
+                            <a href="{% url 'courses:lesson_create' topic_info.topic.pk %}" class="btn btn-sm btn-success">
+                                <i class="fas fa-plus"></i> Add Lesson
+                            </a>
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="card-body">
+                        <p>{{ topic_info.topic.description }}</p>
+                        
+                        {% for lesson_info in topic_info.lessons %}
+                        <div class="card mb-2">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h6 class="mb-0">
+                                        <a href="{% url 'courses:lesson_detail' lesson_info.lesson.pk %}" class="text-decoration-none">
+                                            {{ lesson_info.lesson.title }}
+                                        </a>
+                                    </h6>
+                                    <div class="d-flex align-items-center">
+                                        {% if not is_manager %}
+                                            {% if lesson_info.pending_quizzes > 0 %}
+                                            <span class="badge bg-warning me-3">
+                                                <i class="fas fa-exclamation-circle"></i>
+                                                {{ lesson_info.pending_quizzes }} quiz{{ lesson_info.pending_quizzes|pluralize:"zes" }} pending
+                                            </span>
+                                            {% elif lesson_info.has_quizzes %}
+                                            <span class="badge bg-success me-3">
+                                                <i class="fas fa-check-circle"></i>
+                                                All quizzes completed
+                                            </span>
+                                            {% endif %}
+                                        {% endif %}
+                                        
+                                        {% if is_manager and is_owner %}
+                                        <div class="btn-group">
+                                            <a href="{% url 'courses:lesson_update' lesson_info.lesson.pk %}" class="btn btn-sm btn-warning">
+                                                <i class="fas fa-edit"></i> Edit
+                                            </a>
+                                            <a href="{% url 'courses:lesson_delete' lesson_info.lesson.pk %}" class="btn btn-sm btn-danger">
+                                                <i class="fas fa-trash"></i> Delete
+                                            </a>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% empty %}
+                <p class="text-muted">No topics added yet.</p>
+                {% endfor %}
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- 添加 Font Awesome 图标库 -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+{% endblock %}

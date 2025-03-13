@@ -1,0 +1,499 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+<style>
+.dashboard-card {
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.metric-card {
+    text-align: center;
+    padding: 15px;
+}
+
+.metric-card h2 {
+    font-size: 2em;
+    margin: 10px 0;
+    color: #2c3e50;
+}
+
+.metric-card p {
+    color: #7f8c8d;
+    margin: 0;
+}
+
+.chart-container {
+    position: relative;
+    height: 300px;
+    margin-bottom: 20px;
+}
+
+.select2-container {
+    width: 100% !important;
+}
+
+.select2-selection--multiple {
+    min-height: 38px !important;
+}
+
+.filter-section {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+}
+
+.progress {
+    background-color: #e9ecef;
+    border-radius: 0.25rem;
+    overflow: hidden;
+}
+
+.progress-bar {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    overflow: hidden;
+    color: #fff;
+    text-align: center;
+    white-space: nowrap;
+    transition: width 0.6s ease;
+}
+
+.progress-bar.bg-success {
+    background-color: #28a745 !important;
+}
+
+.progress-bar.bg-info {
+    background-color: #17a2b8 !important;
+}
+
+.topic-item {
+    padding: 10px 0;
+    border-bottom: 1px solid #eee;
+}
+
+.topic-item:last-child {
+    border-bottom: none;
+}
+
+.card-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid rgba(0,0,0,.125);
+}
+
+.badge {
+    font-size: 0.875rem;
+    padding: 0.25em 0.6em;
+}
+
+.lessons-container {
+    border-left: 2px solid #e9ecef;
+    margin-left: 10px;
+}
+
+.lesson-item {
+    padding: 8px 0;
+}
+
+.topic-section {
+    background-color: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+}
+
+.badge {
+    font-weight: normal;
+}
+
+.progress {
+    background-color: rgba(0,0,0,0.1);
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- Filters -->
+    <div class="filter-section">
+        <div class="row g-3">
+            <div class="col-md-3">
+                <label class="form-label">Time Range</label>
+                <select class="form-select" id="timeRange">
+                    <option value="all">All Time</option>
+                    <option value="7">Last 7 days</option>
+                    <option value="30">Last 30 days</option>
+                    <option value="90">Last 3 months</option>
+                    <option value="custom">Custom Range</option>
+                </select>
+                <div id="customDateRange" class="mt-2" style="display: none;">
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <label class="form-label">From</label>
+                            <input type="date" class="form-control" id="dateFrom">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">To</label>
+                            <input type="date" class="form-control" id="dateTo">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Programs</label>
+                <select class="select2-multiple" id="programs" multiple="multiple">
+                    <option value="all">All Programs</option>
+                    {% for program in programs %}
+                    <option value="{{ program.id }}">{{ program.title }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Departments</label>
+                <select class="select2-multiple" id="departments" multiple="multiple">
+                    <option value="all">All Departments</option>
+                    {% for dept in departments %}
+                    <option value="{{ dept }}">{{ dept }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Users</label>
+                <select class="select2-multiple" id="users" multiple="multiple">
+                    <option value="all">All Users</option>
+                    {% for user in users %}
+                    <option value="{{ user.id }}">{{ user.username }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div class="row mt-3">
+            <div class="col-12">
+                <button id="applyFilters" class="btn btn-primary">Apply Filters</button>
+                <button id="resetFilters" class="btn btn-secondary">Reset</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Overview Cards -->
+    <div class="row">
+        <div class="col-md-3">
+            <div class="dashboard-card metric-card">
+                <p>Active Programs</p>
+                <h2 id="active_programs_count">{{ active_programs_count }}</h2>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="dashboard-card metric-card">
+                <p>Total Enrollments</p>
+                <h2 id="total_enrollments">{{ total_enrollments }}</h2>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="dashboard-card metric-card">
+                <p>Pending Grading</p>
+                <h2 id="pending_grading_count">{{ pending_grading_count }}</h2>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="dashboard-card metric-card">
+                <p>Average Completion Rate</p>
+                <h2 id="avgCompletionRate">-</h2>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="dashboard-card">
+                <h5>Program Completion Rates</h5>
+                <div class="chart-container">
+                    <canvas id="completionChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="dashboard-card">
+                <h5>Quiz Performance</h5>
+                <div class="chart-container">
+                    <canvas id="quizChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detailed Analysis -->
+    <div class="dashboard-card">
+        <h5>Program Details</h5>
+        <div id="programDetails">
+            <!-- Will be populated by JavaScript -->
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+$(document).ready(function() {
+    // Initialize Select2
+    $('.select2-multiple').select2({
+        theme: 'bootstrap-5',
+        width: '100%',
+        placeholder: 'Select options',
+        allowClear: true
+    });
+
+    // Handle "all" options
+    $('.select2-multiple').on('select2:select', function(e) {
+        if(e.params.data.id === 'all') {
+            $(this).find('option').prop('selected', true);
+            $(this).find('option[value="all"]').prop('selected', false);
+            $(this).trigger('change');
+        }
+    });
+
+    // 初始化图表
+    let completionChart = new Chart(
+        document.getElementById('completionChart'),
+        {
+            type: 'bar',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Completion Rate (%)',
+                    data: [],
+                    backgroundColor: 'rgba(54, 162, 235, 0.5)'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100
+                    }
+                }
+            }
+        }
+    );
+
+    let quizChart = new Chart(
+        document.getElementById('quizChart'),
+        {
+            type: 'bar',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Average Quiz Score (%)',
+                    data: [],
+                    backgroundColor: 'rgba(75, 192, 192, 0.5)'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100
+                    }
+                }
+            }
+        }
+    );
+
+    // 更新仪表板函数
+    function updateDashboard() {
+        let filters = {
+            programs: $('#programs').val() || [],
+            departments: $('#departments').val() || [],
+            users: $('#users').val() || [],
+            timeRange: $('#timeRange').val()
+        };
+
+        if (filters.timeRange === 'custom') {
+            filters.dateFrom = $('#dateFrom').val();
+            filters.dateTo = $('#dateTo').val();
+        }
+
+        // 更新 URL 参数
+        let searchParams = new URLSearchParams();
+        for (let key in filters) {
+            if (Array.isArray(filters[key])) {
+                filters[key].forEach(value => searchParams.append(`${key}[]`, value));
+            } else {
+                searchParams.append(key, filters[key]);
+            }
+        }
+        window.history.replaceState({}, '', `${window.location.pathname}?${searchParams.toString()}`);
+
+        // AJAX 请求更新数据
+        $.ajax({
+            url: '{% url "analytics:update_dashboard" %}',
+            data: filters,
+            success: function(response) {
+                // 更新统计数据
+                $('#active_programs_count').text(response.active_programs_count);
+                $('#total_enrollments').text(response.total_enrollments);
+                $('#pending_grading_count').text(response.pending_grading_count);
+                $('#avgCompletionRate').text(response.avg_completion_rate.toFixed(1) + '%');
+
+                // 更新完成率图表
+                completionChart.data.labels = response.programs.map(p => p.title);
+                completionChart.data.datasets[0].data = response.programs.map(p => p.completion_rate);
+                completionChart.update();
+
+                // 更新测验成绩图表
+                quizChart.data.labels = response.programs.map(p => p.title);
+                quizChart.data.datasets[0].data = response.programs.map(p => p.avg_quiz_score);
+                quizChart.update();
+
+                // 更新项目详情
+                updateProgramDetails(response.programs);
+            },
+            error: function(xhr, status, error) {
+                console.error('Error updating dashboard:', error);
+                alert('Error updating dashboard. Please try again.');
+            }
+        });
+    }
+
+    // 更新项目详情函数
+    function updateProgramDetails(programs) {
+        let detailsHtml = '';
+        programs.forEach(program => {
+            detailsHtml += `
+                <div class="card mb-3">
+                    <div class="card-header bg-light">
+                        <h6 class="mb-0">${program.title}</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <small class="text-muted">Enrolled Students</small>
+                                <h6 class="mb-0">${program.enrolled_count}</h6>
+                            </div>
+                            <div class="col-md-4">
+                                <small class="text-muted">Completion Rate</small>
+                                <h6 class="mb-0">${program.completion_rate}%</h6>
+                            </div>
+                            <div class="col-md-4">
+                                <small class="text-muted">Average Quiz Score</small>
+                                <h6 class="mb-0">${program.avg_quiz_score}%</h6>
+                            </div>
+                        </div>
+                        
+                        <div class="program-progress mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <small class="text-muted">Overall Progress</small>
+                                <span class="badge bg-success">${program.completion_rate}%</span>
+                            </div>
+                            <div class="progress" style="height: 10px;">
+                                <div class="progress-bar bg-success" role="progressbar" 
+                                     style="width: ${program.completion_rate}%" 
+                                     aria-valuenow="${program.completion_rate}" 
+                                     aria-valuemin="0" 
+                                     aria-valuemax="100">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="topics mt-4">
+                            <h6 class="text-muted mb-3">Topic & Lesson Progress</h6>
+                            ${program.topics.map(topic => `
+                                <div class="topic-section mb-4">
+                                    <div class="topic-item mb-3">
+                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                            <span class="fw-bold">${topic.title}</span>
+                                            <span class="badge bg-primary">${topic.completion_rate}%</span>
+                                        </div>
+                                        <div class="progress" style="height: 8px;">
+                                            <div class="progress-bar bg-primary" role="progressbar" 
+                                                 style="width: ${topic.completion_rate}%" 
+                                                 aria-valuenow="${topic.completion_rate}" 
+                                                 aria-valuemin="0" 
+                                                 aria-valuemax="100">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="lessons-container ps-4">
+                                        ${topic.lessons.map(lesson => `
+                                            <div class="lesson-item mb-2">
+                                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                                    <span class="small">${lesson.title}</span>
+                                                    <span class="badge bg-info">${lesson.completion_rate}%</span>
+                                                </div>
+                                                <div class="progress" style="height: 6px;">
+                                                    <div class="progress-bar bg-info" role="progressbar" 
+                                                         style="width: ${lesson.completion_rate}%" 
+                                                         aria-valuenow="${lesson.completion_rate}" 
+                                                         aria-valuemin="0" 
+                                                         aria-valuemax="100">
+                                                    </div>
+                                                </div>
+                                                <small class="text-muted">
+                                                    Quizzes completed: ${lesson.completed_quizzes}/${lesson.total_quizzes}
+                                                </small>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        
+        if (programs.length === 0) {
+            detailsHtml = '<div class="alert alert-info">No programs found matching the selected filters.</div>';
+        }
+        
+        $('#programDetails').html(detailsHtml);
+    }
+
+    // 事件监听器
+    $('#applyFilters').click(function() {
+        updateDashboard();
+    });
+
+    $('#resetFilters').click(function() {
+        $('#timeRange').val('all');
+        $('.select2-multiple').val(null).trigger('change');
+        $('#customDateRange').hide();
+        updateDashboard();
+    });
+
+    $('#timeRange').change(function() {
+        if ($(this).val() === 'custom') {
+            $('#customDateRange').show();
+        } else {
+            $('#customDateRange').hide();
+            updateDashboard();
+        }
+    });
+
+    $('#dateFrom, #dateTo').change(function() {
+        if ($('#timeRange').val() === 'custom') {
+            updateDashboard();
+        }
+    });
+
+    // 初始加载
+    updateDashboard();
+});
+</script>
+{% endblock %}

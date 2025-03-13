@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">Responses for "{{ quiz.title }}"</h4>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Student</th>
+                                    <th>Submitted</th>
+                                    <th>Response</th>
+                                    <th>Score</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for response in responses %}
+                                <tr>
+                                    <td>{{ response.user.username }}</td>
+                                    <td>{{ response.submitted_at|date:"M d, Y H:i" }}</td>
+                                    <td>
+                                        {% if quiz.quiz_type == 'MCQ' %}
+                                            {{ response.selected_choice.choice_text }}
+                                        {% else %}
+                                            {{ response.answer|truncatewords:10 }}
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if response.score is not None %}
+                                            {{ response.score }}
+                                        {% else %}
+                                            Not graded
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if quiz.quiz_type == 'OPEN' and not response.score %}
+                                            <a href="{% url 'courses:grade_response' response.id %}" 
+                                               class="btn btn-sm btn-primary">
+                                                Grade
+                                            </a>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="5" class="text-center">No responses yet.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

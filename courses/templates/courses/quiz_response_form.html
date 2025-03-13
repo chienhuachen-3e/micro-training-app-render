@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-header">
+            <h4 class="mb-0">{{ quiz.title }}</h4>
+        </div>
+        <div class="card-body">
+            <div class="quiz-question mb-4">
+                <h5>Question:</h5>
+                <p>{{ quiz.question }}</p>
+                <p class="text-muted">Points: {{ quiz.points }}</p>
+            </div>
+
+            <form method="post">
+                {% csrf_token %}
+                {% if quiz.quiz_type == 'MCQ' %}
+                    <div class="choices-list">
+                        {{ form.selected_choice|as_crispy_field }}
+                    </div>
+                {% else %}
+                    {{ form.text_response|as_crispy_field }}
+                {% endif %}
+                <div class="mt-3">
+                    <button type="submit" class="btn btn-primary">Submit Answer</button>
+                    <a href="{% url 'courses:lesson_detail' lesson.pk %}" class="btn btn-secondary">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

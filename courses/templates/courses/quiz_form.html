@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-header">
+            <h4 class="mb-0">{% if form.instance.pk %}Edit{% else %}Create{% endif %} Quiz</h4>
+        </div>
+        <div class="card-body">
+            <form method="post" id="quizForm">
+                {% csrf_token %}
+                {{ form|crispy }}
+                
+                <div id="choicesSection" style="display: none;">
+                    <h5 class="mt-4">Choices</h5>
+                    {{ choices_formset|crispy }}
+                </div>
+
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-primary">Save</button>
+                    <a href="{% url 'courses:lesson_detail' lesson.pk %}" class="btn btn-secondary">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const quizTypeSelect = document.getElementById('id_quiz_type');
+    const choicesSection = document.getElementById('choicesSection');
+
+    function toggleChoicesSection() {
+        if (quizTypeSelect.value === 'MCQ') {
+            choicesSection.style.display = 'block';
+        } else {
+            choicesSection.style.display = 'none';
+        }
+    }
+
+    // 初始化时检查
+    toggleChoicesSection();
+
+    // 监听选择变化
+    quizTypeSelect.addEventListener('change', toggleChoicesSection);
+
+    // 处理动态表单集
+    document.querySelectorAll('.delete-row').forEach(button => {
+        button.classList.add('btn', 'btn-danger', 'btn-sm');
+    });
+
+    document.querySelectorAll('.add-row').forEach(button => {
+        button.classList.add('btn', 'btn-success', 'btn-sm');
+    });
+});
+</script>
+{% endblock %}
+{% endblock %}

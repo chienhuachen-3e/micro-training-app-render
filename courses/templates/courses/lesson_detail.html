@@ -1,0 +1,224 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h4 class="mb-0">{{ lesson.title }}</h4>
+            {% if is_manager and is_owner %}
+            <div class="btn-group">
+                <a href="{% url 'courses:lesson_update' lesson.pk %}" class="btn btn-warning">
+                    <i class="fas fa-edit"></i> Edit Lesson
+                </a>
+                <a href="{% url 'courses:lesson_delete' lesson.pk %}" class="btn btn-danger">
+                    <i class="fas fa-trash"></i> Delete Lesson
+                </a>
+                <a href="{% url 'courses:quiz_create' lesson.pk %}" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Add Quiz
+                </a>
+            </div>
+            {% endif %}
+        </div>
+        <div class="card-body">
+            {% if lesson.video_url %}
+            <div class="ratio ratio-16x9 mb-4">
+                <iframe src="{{ lesson.video_url }}" allowfullscreen></iframe>
+            </div>
+            {% endif %}
+
+            <div class="lesson-content mb-4">
+                {{ lesson.content|safe }}
+            </div>
+
+            <!-- Quizzes Section -->
+            <div class="card mt-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Quizzes</h5>
+                </div>
+                <div class="card-body">
+                    {% if lesson.quizzes.exists %}
+                        {% if is_manager %}
+                            {% for quiz in lesson.quizzes.all %}
+                            <div class="card mb-4">
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <h5 class="mb-0">{{ quiz.title }}</h5>
+                                    <div class="btn-group">
+                                        <a href="{% url 'courses:quiz_update' quiz.pk %}" class="btn btn-sm btn-warning">
+                                            <i class="fas fa-edit"></i> Edit
+                                        </a>
+                                        <a href="{% url 'courses:quiz_delete' quiz.pk %}" class="btn btn-sm btn-danger">
+                                            <i class="fas fa-trash"></i> Delete
+                                        </a>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <p><strong>Question:</strong> {{ quiz.question }}</p>
+                                    <p><strong>Type:</strong> {{ quiz.get_quiz_type_display }}</p>
+                                    <p><strong>Points:</strong> {{ quiz.points }}</p>
+
+                                    {% if quiz.quiz_type == 'MCQ' %}
+                                        <div class="mb-3">
+                                            <h6>Choices:</h6>
+                                            <ul class="list-group">
+                                                {% for choice in quiz.choices.all %}
+                                                <li class="list-group-item {% if choice.is_correct %}list-group-item-success{% endif %}">
+                                                    {{ choice.choice_text }}
+                                                    {% if choice.is_correct %}
+                                                        <span class="badge bg-success float-end">Correct Answer</span>
+                                                    {% endif %}
+                                                </li>
+                                                {% endfor %}
+                                            </ul>
+                                        </div>
+                                    {% endif %}
+
+                                    <div class="mt-4">
+                                        <h6>Student Responses:</h6>
+                                        {% for response in quiz.responses.all %}
+                                        <div class="card mb-3">
+                                            <div class="card-header">
+                                                <strong>{{ response.user.username }}</strong>
+                                                <span class="text-muted float-end">
+                                                    Submitted: {{ response.submitted_at|date:"M d, Y H:i" }}
+                                                </span>
+                                            </div>
+                                            <div class="card-body">
+                                                {% if quiz.quiz_type == 'MCQ' %}
+                                                    <p><strong>Selected Answer:</strong> {{ response.selected_choice.choice_text }}</p>
+                                                    <p class="mb-0">
+                                                        <span class="badge {% if response.selected_choice.is_correct %}bg-success{% else %}bg-danger{% endif %}">
+                                                            {% if response.selected_choice.is_correct %}Correct{% else %}Incorrect{% endif %}
+                                                        </span>
+                                                    </p>
+                                                {% else %}
+                                                    <p><strong>Answer:</strong></p>
+                                                    <div class="border rounded p-3 mb-3 bg-light">
+                                                        {{ response.text_response|linebreaks }}
+                                                    </div>
+                                                    {% if response.grading_status == 'PENDING' %}
+                                                        <form method="post" action="{% url 'courses:grade_response' response.pk %}" class="mt-3">
+                                                            {% csrf_token %}
+                                                            <div class="mb-3">
+                                                                <label class="form-label">Points (max: {{ quiz.points }})</label>
+                                                                <input type="number" name="points_earned" class="form-control" 
+                                                                       min="0" max="{{ quiz.points }}" required>
+                                                            </div>
+                                                            <div class="mb-3">
+                                                                <label class="form-label">Feedback</label>
+                                                                <textarea name="grading_comment" class="form-control" rows="3"></textarea>
+                                                            </div>
+                                                            <button type="submit" class="btn btn-primary">Submit Grade</button>
+                                                        </form>
+                                                    {% else %}
+                                                        <div class="alert {% if response.points_earned == quiz.points %}alert-success{% else %}alert-warning{% endif %}">
+                                                            <p><strong>Score:</strong> {{ response.points_earned }}/{{ quiz.points }}</p>
+                                                            {% if response.grading_comment %}
+                                                                <p><strong>Feedback:</strong> {{ response.grading_comment }}</p>
+                                                            {% endif %}
+                                                            <small class="text-muted">
+                                                                Graded by: {{ response.graded_by.username }} on {{ response.graded_at|date:"M d, Y H:i" }}
+                                                            </small>
+                                                        </div>
+                                                    {% endif %}
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                        {% empty %}
+                                        <p class="text-muted">No responses yet.</p>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <!-- 未完成的测验 -->
+                            {% if pending_quizzes %}
+                            <div class="mt-4">
+                                <h5><i class="fas fa-clock"></i> Pending Quizzes</h5>
+                                <div class="list-group">
+                                    {% for quiz in pending_quizzes %}
+                                    <div class="list-group-item">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <h6 class="mb-1">{{ quiz.title }}</h6>
+                                                <p class="mb-1">{{ quiz.question }}</p>
+                                                <small class="text-muted">Points: {{ quiz.points }}</small>
+                                            </div>
+                                            <a href="{% url 'courses:quiz_answer' quiz.pk %}" class="btn btn-primary">
+                                                <i class="fas fa-pencil-alt"></i> Take Quiz
+                                            </a>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            {% endif %}
+
+                            <!-- 已完成待评分的测验 -->
+                            {% if waiting_for_grading %}
+                            <div class="mt-4">
+                                <h5><i class="fas fa-hourglass-half"></i> Waiting for Grading</h5>
+                                <div class="list-group">
+                                    {% for response in waiting_for_grading %}
+                                    <div class="list-group-item">
+                                        <h6 class="mb-1">{{ response.quiz.title }}</h6>
+                                        <p class="mb-1">Your answer: 
+                                            {% if response.quiz.quiz_type == 'MCQ' %}
+                                                {{ response.selected_choice.choice_text }}
+                                            {% else %}
+                                                {{ response.text_response }}
+                                            {% endif %}
+                                        </p>
+                                        <div class="alert alert-info mt-2">
+                                            <i class="fas fa-clock"></i> Pending review
+                                        </div>
+                                        <small class="text-muted">Submitted: {{ response.submitted_at|date:"M d, Y H:i" }}</small>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            {% endif %}
+
+                            <!-- 已评分的测验 -->
+                            {% if graded_responses %}
+                            <div class="mt-4">
+                                <h5><i class="fas fa-check-circle"></i> Completed Quizzes</h5>
+                                <div class="list-group">
+                                    {% for response in graded_responses %}
+                                    <div class="list-group-item">
+                                        <h6 class="mb-1">{{ response.quiz.title }}</h6>
+                                        <p class="mb-1">Your answer: 
+                                            {% if response.quiz.quiz_type == 'MCQ' %}
+                                                {{ response.selected_choice.choice_text }}
+                                            {% else %}
+                                                {{ response.text_response }}
+                                            {% endif %}
+                                        </p>
+                                        <div class="alert {% if response.points_earned == response.quiz.points %}alert-success{% else %}alert-warning{% endif %} mt-2">
+                                            <strong>Score: {{ response.points_earned }}/{{ response.quiz.points }}</strong>
+                                            {% if response.grading_comment %}
+                                            <p class="mb-0"><strong>Feedback:</strong> {{ response.grading_comment }}</p>
+                                            {% endif %}
+                                        </div>
+                                        <small class="text-muted">
+                                            Graded: {{ response.graded_at|date:"M d, Y H:i" }}
+                                            {% if response.graded_by %}
+                                            by {{ response.graded_by.username }}
+                                            {% endif %}
+                                        </small>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            {% endif %}
+                        {% endif %}
+                    {% else %}
+                    <p class="text-muted mt-4">No quizzes added yet.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

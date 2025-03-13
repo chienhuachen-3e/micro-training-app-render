@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h3>您已成功退出登录</h3>
+                    <p>感谢您的使用！</p>
+                    <a href="{% url 'login' %}" class="btn btn-primary">重新登录</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
