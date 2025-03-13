@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h2 class="mb-4">我的学习进度</h2>
+    
+    {% for enrollment in enrollments %}
+    <div class="card mb-3">
+        <div class="card-body">
+            <h5 class="card-title">{{ enrollment.program.title }}</h5>
+            <div class="progress mb-3">
+                <div class="progress-bar" role="progressbar" 
+                     style="width: {{ enrollment.progress_percentage }}%"
+                     aria-valuenow="{{ enrollment.progress_percentage }}" 
+                     aria-valuemin="0" aria-valuemax="100">
+                    {{ enrollment.progress_percentage|floatformat:1 }}%
+                </div>
+            </div>
+            <p class="card-text">
+                开始时间: {{ enrollment.enrolled_at|date:"Y-m-d" }}
+            </p>
+            <a href="{% url 'program_detail' enrollment.program.id %}" 
+               class="btn btn-primary">继续学习</a>
+        </div>
+    </div>
+    {% empty %}
+    <div class="alert alert-info">
+        您还没有参加任何培训项目。
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

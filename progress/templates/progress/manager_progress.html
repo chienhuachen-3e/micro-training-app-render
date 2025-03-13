@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h2 class="mb-4">学员进度概览</h2>
+    
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>用户名</th>
+                    <th>部门</th>
+                    <th>培训项目</th>
+                    <th>进度</th>
+                    <th>开始时间</th>
+                    <th>完成状态</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for enrollment in enrollments %}
+                <tr>
+                    <td>{{ enrollment.user.username }}</td>
+                    <td>{{ enrollment.user.department }}</td>
+                    <td>{{ enrollment.program.title }}</td>
+                    <td>
+                        <div class="progress">
+                            <div class="progress-bar" role="progressbar" 
+                                 style="width: {{ enrollment.progress_percentage }}%">
+                                {{ enrollment.progress_percentage|floatformat:1 }}%
+                            </div>
+                        </div>
+                    </td>
+                    <td>{{ enrollment.enrolled_at|date:"Y-m-d" }}</td>
+                    <td>
+                        {% if enrollment.completed %}
+                        <span class="badge bg-success">已完成</span>
+                        {% else %}
+                        <span class="badge bg-warning">进行中</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8 text-center">
+            <h1 class="display-4 mb-4">Welcome to Micro Training</h1>
+            <p class="lead">A platform for micro-learning and skill development.</p>
+            {% if user.is_authenticated %}
+                <p>
+                    <a href="{% url 'courses:program_list' %}" class="btn btn-primary btn-lg">
+                        Browse Programs
+                    </a>
+                </p>
+                {% if user.is_manager %}
+                    <p>
+                        <a href="{% url 'courses:program_create' %}" class="btn btn-success btn-lg">
+                            Create New Program
+                        </a>
+                    </p>
+                {% endif %}
+            {% else %}
+                <p>
+                    <a href="{% url 'login' %}" class="btn btn-primary btn-lg me-2">Login</a>
+                    <a href="{% url 'register' %}" class="btn btn-outline-primary btn-lg">Register</a>
+                </p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
